@@ -77,17 +77,17 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        if(!bufferPool.containsKey(pid)){
-            Catalog catalog = Database.getCatalog();
-            DbFile dbFile = catalog.getDatabaseFile(pid.getTableId());
-            if(dbFile == null){
+        if(!bufferPool.containsKey(pid)){  //当缓冲未命中时
+            Catalog catalog = Database.getCatalog();//目录
+            DbFile dbFile = catalog.getDatabaseFile(pid.getTableId());  //从Database中寻找Table
+            if(dbFile == null){ //未找到当前Table
                 throw new DbException("BufferPool, getPage: no such page with pid " + pid);
             }
             Page page = dbFile.readPage(pid);
-            if(page == null){
+            if(page == null){  //未找到当前Page
                 throw new DbException("BufferPool, getPage: no such page with pid " + pid);
             }
-            bufferPool.put(pid,page);
+            bufferPool.put(pid, page);
         }
         return bufferPool.get(pid);
     }
