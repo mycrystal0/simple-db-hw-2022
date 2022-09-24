@@ -23,12 +23,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Catalog {
 
+    private List<Integer> tableIds;
+    private List<DbFile> dbFiles;
+    private List<String> names;
+    private List<String> pkeyFields;
+//    primary key
+
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
         // some code goes here
+        this.tableIds = new ArrayList<>();
+        this.dbFiles = new ArrayList<>();
+        this.names = new ArrayList<>();
+        this.pkeyFields = new ArrayList<>();
     }
 
     /**
@@ -42,9 +52,38 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        int ith = -1;
+        for (int i = 0; i < this.dbFiles.size(); i++) {
+            if(this.dbFiles.get(i).getId() == file.getId()){
+                ith = i;
+            }
+        }
+        if(ith > 0) {
+            this.tableIds.set(ith, file.getId());
+            this.dbFiles.set(ith, file);
+            this.names.set(ith, name);
+            this.pkeyFields.set(ith, pkeyField);
+        }
+        for (int i = 0; i < this.names.size(); i++) {
+            if(name != null && this.names.get(i).equals(name)){
+                ith = i;
+            }
+        }
+        if(ith > 0) {
+            this.tableIds.set(ith, file.getId());
+            this.dbFiles.set(ith, file);
+            this.names.set(ith, name);
+            this.pkeyFields.set(ith, pkeyField);
+        }
+
+        this.tableIds.add(file.getId());
+        this.dbFiles.add(file);
+        this.names.add(name);
+        this.pkeyFields.add(pkeyField);
     }
 
     public void addTable(DbFile file, String name) {
+
         addTable(file, name, "");
     }
 
@@ -65,7 +104,12 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        for (int i = 0; i < this.names.size(); i++) {
+            if(name.equals(this.names.get(i))){
+                return this.tableIds.get(i);
+            }
+        }
+        throw new NoSuchElementException("Catalog.class, func: getTableId, no such name: " + name);
     }
 
     /**
@@ -76,7 +120,12 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        for (int i = 0; i < this.tableIds.size(); i++) {
+            if(tableid == this.tableIds.get(i)){
+                return this.dbFiles.get(i).getTupleDesc();
+            }
+        }
+        throw new NoSuchElementException("Catalog.class, func: getTupleDesc, no such table id: " + tableid);
     }
 
     /**
@@ -87,27 +136,46 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        for (int i = 0; i < this.tableIds.size(); i++) {
+            if(tableid == this.tableIds.get(i)){
+                return this.dbFiles.get(i);
+            }
+        }
+        throw new NoSuchElementException("Catalog.class, func: getDatabaseFile, no such table id: " + tableid);
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
-        return null;
+        for (int i = 0; i < this.tableIds.size(); i++) {
+            if(tableid == this.tableIds.get(i)){
+                return this.pkeyFields.get(i);
+            }
+        }
+        throw new NoSuchElementException("Catalog.class, func: getPrimaryKey, no such table id: " + tableid);
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return tableIds.iterator();
     }
 
     public String getTableName(int id) {
         // some code goes here
-        return null;
+        for (int i = 0; i < this.tableIds.size(); i++) {
+            if(id == this.tableIds.get(i)){
+                return this.names.get(i);
+            }
+        }
+        throw new NoSuchElementException("Catalog.class, func: getTableName, no such table id: " + id);
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        this.tableIds = new ArrayList<>();
+        this.dbFiles = new ArrayList<>();
+        this.names = new ArrayList<>();
+        this.pkeyFields = new ArrayList<>();
     }
     
     /**
