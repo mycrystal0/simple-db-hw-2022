@@ -223,7 +223,7 @@ public class TupleDesc implements Serializable {
         while (it1.hasNext() && it2.hasNext()){
             TDItem item1 = it1.next();
             TDItem item2 = it2.next();
-            if(!item1.fieldType.equals(item2.fieldType))
+            if(item1.fieldType.compareTo(item2.fieldType) != 0)
                 return false;
         }
         if(it1.hasNext() || it2.hasNext())
