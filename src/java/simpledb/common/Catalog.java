@@ -52,21 +52,22 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
-        int ith = -1;
         for (int i = 0; i < this.dbFiles.size(); i++) {
             if(this.dbFiles.get(i).getId() == file.getId()){
-                this.tableIds.set(ith, file.getId());
-                this.dbFiles.set(ith, file);
-                this.names.set(ith, name);
-                this.pkeyFields.set(ith, pkeyField);
+                this.tableIds.set(i, file.getId());
+                this.dbFiles.set(i, file);
+                this.names.set(i, name);
+                this.pkeyFields.set(i, pkeyField);
+                return;
             }
         }
         for (int i = 0; i < this.names.size(); i++) {
             if(name != null && this.names.get(i).equals(name)){
-                this.tableIds.set(ith, file.getId());
-                this.dbFiles.set(ith, file);
-                this.names.set(ith, name);
-                this.pkeyFields.set(ith, pkeyField);
+                this.tableIds.set(i, file.getId());
+                this.dbFiles.set(i, file);
+                this.names.set(i, name);
+                this.pkeyFields.set(i, pkeyField);
+                return;
             }
         }
         this.tableIds.add(file.getId());
@@ -98,7 +99,7 @@ public class Catalog {
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
         for (int i = 0; i < this.names.size(); i++) {
-            if(name.equals(this.names.get(i))){
+            if(name != null && name.equals(this.names.get(i))){
                 return this.tableIds.get(i);
             }
         }
