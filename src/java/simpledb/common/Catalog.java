@@ -55,27 +55,20 @@ public class Catalog {
         int ith = -1;
         for (int i = 0; i < this.dbFiles.size(); i++) {
             if(this.dbFiles.get(i).getId() == file.getId()){
-                ith = i;
+                this.tableIds.set(ith, file.getId());
+                this.dbFiles.set(ith, file);
+                this.names.set(ith, name);
+                this.pkeyFields.set(ith, pkeyField);
             }
-        }
-        if(ith > 0) {
-            this.tableIds.set(ith, file.getId());
-            this.dbFiles.set(ith, file);
-            this.names.set(ith, name);
-            this.pkeyFields.set(ith, pkeyField);
         }
         for (int i = 0; i < this.names.size(); i++) {
             if(name != null && this.names.get(i).equals(name)){
-                ith = i;
+                this.tableIds.set(ith, file.getId());
+                this.dbFiles.set(ith, file);
+                this.names.set(ith, name);
+                this.pkeyFields.set(ith, pkeyField);
             }
         }
-        if(ith > 0) {
-            this.tableIds.set(ith, file.getId());
-            this.dbFiles.set(ith, file);
-            this.names.set(ith, name);
-            this.pkeyFields.set(ith, pkeyField);
-        }
-
         this.tableIds.add(file.getId());
         this.dbFiles.add(file);
         this.names.add(name);
