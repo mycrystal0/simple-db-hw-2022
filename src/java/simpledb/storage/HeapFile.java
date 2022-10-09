@@ -81,7 +81,7 @@ public class HeapFile implements DbFile {
         byte data[] = new byte[BufferPool.getPageSize()];
             try {
                 raf = new RandomAccessFile(this.file, "r");
-                raf.seek(pid.getPageNumber());
+                raf.seek((long)pid.getPageNumber() * BufferPool.getPageSize());
                 int n = raf.read(data,0,data.length);
                 if(n == -1){
                     throw new IOException("read page failed, reach the end of the file!");
