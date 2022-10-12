@@ -2,7 +2,6 @@ package simpledb.execution;
 
 import simpledb.common.DbException;
 import simpledb.common.Type;
-import simpledb.storage.IntField;
 import simpledb.storage.Tuple;
 import simpledb.storage.TupleDesc;
 import simpledb.transaction.TransactionAbortedException;
@@ -18,13 +17,13 @@ import java.util.NoSuchElementException;
 public class Aggregate extends Operator {
 
     private static final long serialVersionUID = 1L;
-
     private OpIterator child;
     private final int afield;
     private final int gfield;
     private final Aggregator.Op aop;
     private final Aggregator aggregator;
     private OpIterator resultIterator;
+
     /**
      * Constructor.
      * <p>
@@ -45,10 +44,10 @@ public class Aggregate extends Operator {
         this.gfield = gfield;
         this.aop = aop;
         Type gfieldType = null;
-        if(gfield != Aggregator.NO_GROUPING) {
+        if (gfield != Aggregator.NO_GROUPING) {
             gfieldType = child.getTupleDesc().getFieldType(gfield);
         }
-        switch (gfieldType) {
+        switch (child.getTupleDesc().getFieldType(afield)) {
             case INT_TYPE:
                 this.aggregator = new IntegerAggregator(gfield, gfieldType, afield, aop);
                 break;
@@ -116,7 +115,7 @@ public class Aggregate extends Operator {
             TransactionAbortedException {
         // some code goes here
         child.open();
-        while (resultIterator == null && child.hasNext()){
+        while (resultIterator == null && child.hasNext()) {
             aggregator.mergeTupleIntoGroup(child.next());
         }
         resultIterator = aggregator.iterator();
@@ -132,8 +131,7 @@ public class Aggregate extends Operator {
      * aggregate. Should return null if there are no more tuples.
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        if(resultIterator != null && resultIterator.hasNext()){
+        if (resultIterator != null && resultIterator.hasNext()) {
             return resultIterator.next();
         }
         return null;
@@ -176,8 +174,9 @@ public class Aggregate extends Operator {
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
-        if(this.child != children[0])
+        if (this.child != children[0]) {
             this.child = children[0];
+        }
     }
 
 }
