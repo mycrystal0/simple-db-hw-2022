@@ -96,7 +96,11 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        RandomAccessFile rf = new RandomAccessFile(file, "rw");
+        rf.seek(page.getId().getPageNumber() * BufferPool.getPageSize());
+        rf.write(page.getPageData());
+        rf.close();
     }
 
     /**
@@ -111,16 +115,34 @@ public class HeapFile implements DbFile {
     public List<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
-        // not necessary for lab1
+        //lab2
+        int pgNum = 0;
+        HeapPage heapPage = null;
+
+        while (pgNum < numPages()) {
+            heapPage = (HeapPage) Database.getBufferPool().getPage(tid,new HeapPageId(getId(),pgNum), Permissions.READ_WRITE);
+            if (heapPage.getNumEmptySlots() > 0) {
+                break;
+            }
+            pgNum ++;
+        }
+        if(pgNum == numPages()) {
+            heapPage = new HeapPage(new HeapPageId(getId(), pgNum), HeapPage.createEmptyPageData());
+        }
+        heapPage.insertTuple(t);
+        writePage(heapPage);
+        return Arrays.asList(heapPage);
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         // some code goes here
-        return null;
-        // not necessary for lab1
+        // lab2
+        HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
+        heapPage.deleteTuple(t);
+
+        return new ArrayList<>(Arrays.asList(heapPage));
     }
 
     // see DbFile.java for javadocs
@@ -132,8 +154,8 @@ public class HeapFile implements DbFile {
 }
 class HeapFileIterator extends AbstractDbFileIterator {
 
-    Iterator<Tuple> it;
-    HeapPage heapPage;
+    Iterator<Tuple> it = null;
+    HeapPage heapPage = null;
     final HeapFile heapFile;
     final TransactionId tid;
     public HeapFileIterator(HeapFile heapFile, TransactionId tid) {
