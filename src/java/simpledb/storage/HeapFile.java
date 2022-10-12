@@ -165,20 +165,22 @@ class HeapFileIterator extends AbstractDbFileIterator {
 
     @Override
     protected Tuple readNext() throws DbException, TransactionAbortedException {
+        // 当前为最后一个tuple
         if(it != null && !it.hasNext()){
             it = null;
         }
+        // 寻找下一页
         while (it == null && heapPage != null){
-            int pgNo = heapPage.pid.getPageNumber() + BufferPool.getPageSize();
-            int pgNum = (int) Math.ceil(pgNo * 1.0 / BufferPool.getPageSize()) + 1;
-            if(pgNum > this.heapFile.numPages()){
+            int pgNo = heapPage.pid.getPageNumber() + 1;
+            // 判断下一页是否超出文件范围
+            if(pgNo >= this.heapFile.numPages()){
                 heapPage = null;
                 break;
             }
             HeapPageId nextPageId = new HeapPageId(heapPage.pid.getTableId(),pgNo);
             this.heapPage = (HeapPage) Database.getBufferPool().getPage(tid, nextPageId, Permissions.READ_WRITE);
             it = this.heapPage.iterator();
-            if(it != null && !it.hasNext()){
+            if(it != null && it.hasNext()){
                 break;
             }
             it = null;
