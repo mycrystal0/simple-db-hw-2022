@@ -1,7 +1,13 @@
 package simpledb.execution;
 
 import simpledb.common.Type;
-import simpledb.storage.Tuple;
+import simpledb.storage.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * Knows how to compute some aggregate over a set of StringFields.
@@ -10,6 +16,11 @@ public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
 
+    private final Integer gbfield;
+    private final Type gbfieldtype;
+    private final Integer afield;
+    private final Map<Field, Integer> groupedMap = new HashMap<>();
+    private final BiConsumer<Field, StringField> consumer;
     /**
      * Aggregate constructor
      * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
@@ -21,6 +32,23 @@ public class StringAggregator implements Aggregator {
 
     public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldtype = gbfieldtype;
+        this.afield = afield;
+        switch (what) {
+            case COUNT:
+                consumer = (field, val) -> {
+                    if(groupedMap.containsKey(field)) {
+                        groupedMap.put(field, groupedMap.get(field) + 1);
+                    }
+                    else {
+                        groupedMap.put(field, 1);
+                    }
+                };
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported op: " + what);
+        }
     }
 
     /**
@@ -29,6 +57,11 @@ public class StringAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        Field f = null;
+        if(gbfield != NO_GROUPING) {
+            f = tup.getField(gbfield);
+        }
+        consumer.accept(f, (StringField) tup.getField(afield));
     }
 
     /**
@@ -41,7 +74,30 @@ public class StringAggregator implements Aggregator {
      */
     public OpIterator iterator() {
         // some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+//        throw new UnsupportedOperationException("please implement me for lab2");
+        List<Tuple> tuples = new ArrayList<>();
+        final BiConsumer<Field, Integer> biConsumer;
+        final TupleDesc tupleDesc;
+
+        if(gbfield == NO_GROUPING) {
+            tupleDesc = new TupleDesc(new Type[]{Type.STRING_TYPE},new String[]{"AggregateVal"});
+            biConsumer = (k, v) -> {
+                Tuple t = new Tuple(tupleDesc);
+                t.setField(0, new IntField(v));
+                tuples.add(t);
+            };
+        }
+        else {
+            tupleDesc = new TupleDesc(new Type[]{gbfieldtype, Type.INT_TYPE}, new String[]{"GroupVal","AggregateVal"});
+            biConsumer = (k, v) -> {
+                Tuple t = new Tuple(tupleDesc);
+                t.setField(0, k);
+                t.setField(1, new IntField(v));
+                tuples.add(t);
+            };
+        }
+        groupedMap.forEach(biConsumer::accept);
+        return new TupleIterator(tupleDesc, tuples);
     }
 
 }
