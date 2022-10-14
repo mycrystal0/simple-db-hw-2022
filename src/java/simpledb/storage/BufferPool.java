@@ -7,6 +7,8 @@ import simpledb.transaction.TransactionId;
 import java.io.*;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +35,8 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
 
     private Integer numPages;
-    private Map<PageId, Page> bufferPool;
+    private Map<PageId, Page> cacheMap;
+    private LinkedList<PageId> lruList; // 最近最久未使用
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -42,7 +45,8 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
         this.numPages = numPages;
-        this.bufferPool = new HashMap<>();
+        this.cacheMap = new HashMap<>();
+        this.lruList = new LinkedList<>();
     }
     
     public static int getPageSize() {
@@ -77,7 +81,7 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        if(!bufferPool.containsKey(pid)){  //当缓冲未命中时
+        if(!cacheMap.containsKey(pid)){  //当缓冲未命中时
             Catalog catalog = Database.getCatalog();//目录
             DbFile dbFile = catalog.getDatabaseFile(pid.getTableId());  //从Database中寻找Table
             if(dbFile == null){ //未找到当前Table
@@ -87,9 +91,17 @@ public class BufferPool {
             if(page == null){  //未找到当前Page
                 throw new DbException("BufferPool, getPage: no such page with pid " + pid);
             }
-            bufferPool.put(pid, page);
+            addPage(pid, page);
         }
-        return bufferPool.get(pid);
+        if (cacheMap.size() != lruList.size()) {
+            throw new RuntimeException("no match");
+        }
+        return fetchPage(pid);
+    }
+
+    private Page fetchPage(PageId pid) {
+        promotePage(pid);
+        return cacheMap.get(pid);
     }
 
     /**
@@ -153,7 +165,36 @@ public class BufferPool {
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> pageList = dbFile.insertTuple(tid, t);
+        for (Page p : pageList) {
+            p.markDirty(true, tid);
+            if (cacheMap.containsKey(p.getId())) {
+                updatePage(p.getId(), p);
+            }
+            else {
+                addPage(p.getId(), p);
+            }
+        }
+    }
+
+    private void addPage(PageId pid, Page page) throws DbException {
+        if (this.numPages == cacheMap.size()) {
+            evictPage();
+        }
+        lruList.addFirst(pid);
+        cacheMap.put(pid, page);
+    }
+
+    private void updatePage(PageId pid, Page page) throws DbException{
+        promotePage(pid); // 将页面移到链头
+        cacheMap.put(pid, page);
+    }
+
+    private void promotePage(PageId pid) {
+        lruList.remove(pid);
+        lruList.addFirst(pid);
     }
 
     /**
@@ -172,7 +213,19 @@ public class BufferPool {
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        int tableId = t.getRecordId().getPageId().getTableId();
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> pageList = dbFile.insertTuple(tid, t);
+        for (Page p : pageList) {
+            p.markDirty(true, tid);
+            if (cacheMap.containsKey(p.getId())) {
+                updatePage(p.getId(), p);
+            }
+            else {
+                addPage(p.getId(), p);
+            }
+        }
     }
 
     /**
@@ -182,7 +235,10 @@ public class BufferPool {
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        for (PageId pid : cacheMap.keySet()) {
+            this.flushPage(pid);
+        }
 
     }
 
@@ -196,7 +252,11 @@ public class BufferPool {
     */
     public synchronized void discardPage(PageId pid) {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        if (cacheMap.containsKey(pid)) {
+            lruList.remove(pid);
+            cacheMap.remove(pid);
+        }
     }
 
     /**
@@ -205,7 +265,12 @@ public class BufferPool {
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        Page page = cacheMap.get(pid);
+        if (page.isDirty() != null) {
+            Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(page);
+            page.markDirty(false, null);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -221,7 +286,14 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        // not necessary for lab1
+        // lab2
+        PageId leastUsed = lruList.removeLast();
+        try {
+            flushPage(leastUsed);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        cacheMap.remove(leastUsed);
     }
 
 }
